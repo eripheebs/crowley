@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
+    "proper-lockfile": "^4.1.1",
     "request": "^2.88.0",
     "url-parse": "^1.4.7"
   },
@@ -20,12 +21,15 @@
     "@types/cheerio": "^0.22.13",
     "@types/express": "^4.17.2",
     "@types/mocha": "^5.2.7",
+    "@types/proper-lockfile": "^4.1.1",
     "@types/request": "^2.48.3",
+    "@types/rimraf": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "^2.6.0",
     "@typescript-eslint/parser": "^2.6.0",
     "chai": "^4.2.0",
     "eslint": "^6.6.0",
     "mocha": "^6.2.2",
+    "rimraf": "^3.0.0",
     "ts-node": "^8.4.1",
     "typescript": "^3.6.4"
   }

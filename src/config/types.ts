@@ -1,3 +1,7 @@
+interface ReporterConfig {
+  outputFilePath: string;
+}
+
 export interface Config {
-  maxConnections: number;
+  reporter: ReporterConfig;
 }

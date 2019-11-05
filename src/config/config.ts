@@ -1,7 +1,9 @@
 import { Config } from "./types";
 
 const defaultConfig: Config = {
-  maxConnections: 4
+  reporter: {
+    outputFilePath: "sitemap.txt"
+  }
 };
 
 /**

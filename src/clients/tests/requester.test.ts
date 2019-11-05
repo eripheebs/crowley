@@ -1,5 +1,5 @@
-import { createRequester } from "../requester";
 import { expect } from "chai";
+import { createRequester } from "../requester";
 
 describe("Requester client", () => {
   it("creates a requester client with a get function", () => {

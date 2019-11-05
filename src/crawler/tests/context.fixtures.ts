@@ -5,11 +5,12 @@ import { Context } from "../crawler";
 
 const defaultConfig: Context = {
   clients: {
-    requester: request.defaults({}),
-    htmlParser: cheerio
+    requester: request.defaults({})
   },
   config: {
-    maxConnections: 4
+    reporter: {
+      outputFilePath: "sitemap.txt"
+    }
   }
 };
 

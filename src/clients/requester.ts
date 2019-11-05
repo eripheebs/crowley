@@ -10,8 +10,8 @@ export type Requester = Pick<
 >;
 
 /**
- * This is the default requester object. You can pass any default core options you want here.
- * TODO: add no-op client.
+ * This is the default requester. You can pass any default core options you want here.
+ * TODO: add no-op requester.
  */
 export function createRequester(defaults: request.CoreOptions): Requester {
   return request.defaults(defaults);

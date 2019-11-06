@@ -1,7 +1,10 @@
 import fs from "fs";
+import { URL } from "url";
 import lockfile from "proper-lockfile";
 
 import { Context } from "./crawler";
+
+type ReporterContext = Pick<Context, "config">;
 
 /**
  * addUrlToOutputFile
@@ -9,21 +12,16 @@ import { Context } from "./crawler";
  * Locks the file before writing to it
  * Unlocks the file after writing to it.
  */
-export const addUrlToOutputFile = async (ctx: Context, url: string) => {
+export const addUrlToOutputFile = async (ctx: ReporterContext, url: URL) => {
   const outputFilePath = ctx.config.reporter.outputFilePath;
+  const release = await lockfile.lock(outputFilePath);
   try {
-    const release = await lockfile.lock(outputFilePath);
-    try {
-      const urlWithNewLine = url + "\n";
-      fs.appendFileSync(ctx.config.reporter.outputFilePath, urlWithNewLine);
-      await release(); // how to handle if this step errors? need to think about it.
-    } catch (err) {
-      await release(); // how to handle if this step errors? need to think about it.
-      // TODO: log the missing URLs somewhere I guess.
-      throw new Error("error writing to file");
-    }
+    const urlWithNewLine = url.toString() + "\n";
+    fs.appendFileSync(ctx.config.reporter.outputFilePath, urlWithNewLine);
+    await release(); // how to handle if this step errors? need to think about it.
   } catch (err) {
-    // TODO: turn this into a typed error.
-    throw new Error("error locking file");
+    await release(); // how to handle if this step errors? need to think about it.
+    // TODO: log the missing URLs somewhere I guess.
+    throw new Error("error writing to file");
   }
 };

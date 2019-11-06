@@ -1,6 +1,10 @@
 import { Config } from "./types";
+import { URL } from "url";
 
 const defaultConfig: Config = {
+  crawler: {
+    initialUrl: new URL("https://monzo.com/")
+  },
   reporter: {
     outputFilePath: "sitemap.txt"
   }
@@ -9,7 +13,7 @@ const defaultConfig: Config = {
 /**
  * Creates config, with overrides
  */
-export function createConfig(overrides: Partial<Config>): Config {
+export function createConfig(overrides: Partial<Config> = {}): Config {
   return {
     ...defaultConfig,
     ...overrides

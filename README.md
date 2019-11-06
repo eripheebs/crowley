@@ -1,6 +1,6 @@
 Worker pool. Pseudo code planning.
 
-1. Have a queue. Urls get added to the queue. pass queue to worker pool to be initialised (https://github.com/OptimalBits/bull)
+1. Have a queue. Urls get added to the queue. pass queue to worker pool to be initialised.
    add, process...
 
    const factory = {
@@ -8,7 +8,7 @@ Worker pool. Pseudo code planning.
    return this.queue = new Queue();
    },
    destroy: function(client) {
-   // do i have to kill the queue in any way? dunno.
+   // anything i gotta shut down?
    }
    }
    const myPool = genericPool.createPool(factory, opts);

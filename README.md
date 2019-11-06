@@ -3,31 +3,7 @@ Worker pool. Pseudo code planning.
 1. Have a queue. Urls get added to the queue. pass queue to worker pool to be initialised.
    add, process...
 
-   const factory = {
-   create: function() {
-   return this.queue = new Queue();
-   },
-   destroy: function(client) {
-   // anything i gotta shut down?
-   }
-   }
-   const myPool = genericPool.createPool(factory, opts);
-
-async start(first link) {
-this.queue.add(first link)
-
-    finished = queue.count === 0 && pool.available === pool.size
-    while !finished {
-      if (pool.available != 0) {
-        addWorker()
-      }
-    }
-
-}
-
 async addWorker () {
-const queue = await pool.acquire()
-queue.process(function(job, done){
 
 nextUrlInQueue = job.data
 await handleUrlInQueue(nextUrlInQueue)

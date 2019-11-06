@@ -2,7 +2,6 @@ import request from "request";
 import { URL } from "url";
 
 import { Context } from "../crawler";
-import { createUrlQueue } from "../queue";
 
 const initialUrl = new URL("https://google.com");
 
@@ -16,9 +15,11 @@ const defaultConfig: Context = {
     },
     reporter: {
       outputFilePath: "sitemap.txt"
+    },
+    resourcePool: {
+      maxConnections: 4
     }
-  },
-  urlQueue: createUrlQueue(initialUrl)
+  }
 };
 
 /**

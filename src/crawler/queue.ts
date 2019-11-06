@@ -1,5 +1,6 @@
 import { URL } from "url";
 import { Context } from "./crawler";
+import { ResourceQueue } from "./types";
 
 type URLQueueContext = Pick<Context, "config">;
 
@@ -8,7 +9,7 @@ type URLQueueContext = Pick<Context, "config">;
  * It also keeps an index of all the urls that have already been visited, so that we don't explore them again.
  */
 
-export class UrlQueue {
+export class UrlQueue implements ResourceQueue {
   private urls: URL[];
   private visited: Record<string, boolean>;
   testing: {
@@ -38,6 +39,10 @@ export class UrlQueue {
       throw Error("no more in queue!"); // make typed err later
     }
     return this.urls.shift() as URL; // this should be able to infer - fix later
+  }
+
+  count(): number {
+    return this.urls.length;
   }
 
   private addToVisited(url: URL) {

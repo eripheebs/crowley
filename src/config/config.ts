@@ -7,6 +7,9 @@ const defaultConfig: Config = {
   },
   reporter: {
     outputFilePath: "sitemap.txt"
+  },
+  resourcePool: {
+    maxConnections: 4
   }
 };
 

@@ -1,12 +1,15 @@
 /**
- * Generic resource queue interface
+ * Generic resource queue interface, for the ResourcePool
  */
 export interface ResourceQueue {
-  addToQueue: (resource: any) => void;
+  addItemsToQueue: (resource: any[]) => void;
   getNext: () => any;
   count: () => number;
 }
 
+/**
+ * Generic task worker interface, for the ResourcePool
+ */
 export interface TaskWorker {
   work: (resource: any) => Promise<void>;
 }

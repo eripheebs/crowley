@@ -6,6 +6,8 @@ interface ReporterConfig {
 
 interface CrawlerConfig {
   initialUrl: URL;
+  maxTimeoutMs: number;
+  pollIntervalMs: number;
 }
 
 interface TaskPoolConfig {

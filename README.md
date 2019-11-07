@@ -1,40 +1,76 @@
-Worker pool. Pseudo code planning.
+# crawler
 
-1. Have a queue. Urls get added to the queue. pass queue to worker pool to be initialised.
-   add, process...
+A concurrent web crawler that will produce a sitemap.txt based on a given url :)
 
-async addWorker () {
+#### How it works
 
-nextUrlInQueue = job.data
-await handleUrlInQueue(nextUrlInQueue)
+The crawler has a queue and a resource pool. When a new URL is found it is added to the queue. The resource pool controls access to the queue. The pool allows workers to acquire MAX_CONNECTIONS to the queue. The pool does not release the connection to the resource until the worker is finished.
 
-// call done when finished
-done();
+In the resource pool, as long as there are unfinished tasks and URLs in the queue, there is a loop checking whether we should add a new worker. This loop gets throttled when all workers are busy by an attempt to acquire a connection. It waits (blocking the loop) until one of the connections are freed. Whenever a connection is released so there are less than MAX_CONNECTIONS free, if there are still URLs in the queue, the worker will acquire that connection and continue to crawl on the next url :)
 
-// or give a error if error (try catch then.)
-done(new Error(.......)) (if it errors do we wanna retry?. maybe i'll retry to MAX_RETRIES & add to an error arr.....)
+When the queue is empty and no outstanding tasks are remaining, the pool is drained.
 
-finally:
-pool.release(queue)
+### Set up:
 
-// If the job throws an unhandled exception it is also handled correctly
+- install dependencies `yarn` or `npm install`
+
+#### Via command line:
+
+- start the crawler `yarn start` with defaults
+
+- pass your own config `OUTPUT_FILE_PATH=<file you wanna write to> INITIAL_URL=<a url> MAX_TIMEOUT_MS=<number> MAX_CONNECTIONS=<number> POLL_INTERVAL_MS=<number> yarn start`
+
+#### Via code:
+
+- you can configure your own clients, config etc in the code.
+
+```ts
+import { createCrawler } from "./crawler";
+import { createClients } from "./clients";
+import { createConfig } from "./config";
+
+const clients = createClients();
+
+const config = createConfig({
+  initialUrl: "http://woof.com"
+  maxTimeoutMs: 10000,
+  outputFilePath: "meow.txt",
+  maxConnections: 2,
+  pollIntervalMs: 100
 });
 
-}
+const crawler = createCrawler({
+  config,
+  clients
+});
 
-async handleUrlInQueue (url) => {
-const response = await request()
-if(response.statusCode === 200) {
-// Parse the document body finding relative urls.. collect internal links.
-// reporter.add(url) [checks the url isnt already added, then adds the url to the sitemap]
-// queue.add(url)
-}
-}
+```
 
-1.5 Worker pool!(https://github.com/coopernurse/node-pool)
+#### Testing
 
-2. Create [number] workers concurrently
-3. Worker: pops 1st thing off queue, and starts 'working' on it.
-4.
+- run `yarn test`
 
-maximum pages to visit?
+#### File structure
+
+```
+.
+├── \_index
+├── \_crawler
+| ├── index
+| ├── resourcePool
+| ├── queue
+| ├── reporter
+| ├── parser
+| ├── types
+| ├── errors
+| └── tests
+├── config
+| ├── index
+| └── types
+├── clients
+| ├── index
+| ├── requester
+| ├── logger
+| ├── types
+| └── tests
+```

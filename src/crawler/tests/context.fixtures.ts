@@ -1,17 +1,23 @@
-import request from "request";
+import { createRequester } from "../../clients/requester";
 import { URL } from "url";
 
-import { Context } from "../crawler";
+import { Context } from "../index";
 
 const initialUrl = new URL("https://google.com");
 
 const defaultConfig: Context = {
   clients: {
-    requester: request.defaults({})
+    requester: createRequester(),
+    logger: {
+      info: () => {},
+      error: () => {}
+    }
   },
   config: {
     crawler: {
-      initialUrl
+      initialUrl,
+      maxTimeoutMs: 100000,
+      pollIntervalMs: 1000
     },
     reporter: {
       outputFilePath: "sitemap.txt"

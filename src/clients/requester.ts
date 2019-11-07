@@ -1,18 +1,11 @@
-import request from "request";
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 
-export type Requester = Pick<
-  request.RequestAPI<
-    request.Request,
-    request.CoreOptions,
-    request.RequiredUriUrl
-  >,
-  "get"
->;
+export type Requester = Pick<AxiosInstance, "get">;
 
 /**
  * This is the default requester. You can pass any default core options you want here.
  * TODO: add no-op requester.
  */
-export function createRequester(defaults: request.CoreOptions): Requester {
-  return request.defaults(defaults);
+export function createRequester(defaults: AxiosRequestConfig = {}): Requester {
+  return axios.create(defaults);
 }

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { createUrlQueue, UrlQueue } from "../queue";
 import { URL } from "url";
-import { createConfig } from "../../config/config";
+import { createConfig } from "../../config";
 import { generateContext } from "./context.fixtures";
 
 describe("UrlQueue", () => {
@@ -9,9 +9,8 @@ describe("UrlQueue", () => {
   const aUrl = new URL("http://www.blah.com");
   const anotherUrl = new URL("http://www.hippo.com/hippos");
   const config = createConfig({
-    crawler: {
-      initialUrl: aUrl
-    }
+    initialUrl: aUrl,
+    maxTimeoutMs: 100000
   });
   const context = generateContext({
     config
@@ -32,21 +31,22 @@ describe("UrlQueue", () => {
         urlQueue.getNext();
         expect.fail();
       } catch (err) {
-        expect(err.message).to.equal("no more in queue!");
+        expect(err.type).to.equal("queue.emptyQueue");
+        expect(err.message).to.equal("Attempted to get next from empty queue");
       }
     });
   });
 
-  describe("addToQueue", () => {
+  describe("addItemsToQueue", () => {
     it("adds url to queue that you can then request", async () => {
-      urlQueue.addToQueue(anotherUrl);
+      urlQueue.addItemsToQueue([anotherUrl]);
       const actual = urlQueue.testing.urls;
       expect(actual).to.deep.equal([aUrl, anotherUrl]);
     });
 
     it("doesnt add urls that you have seen before", async () => {
-      urlQueue.addToQueue(anotherUrl);
-      urlQueue.addToQueue(anotherUrl);
+      urlQueue.addItemsToQueue([anotherUrl]);
+      urlQueue.addItemsToQueue([anotherUrl]);
       const actual = urlQueue.testing.urls;
       expect(actual).to.deep.equal([aUrl, anotherUrl]);
     });
@@ -58,7 +58,7 @@ describe("UrlQueue", () => {
     });
 
     it("returns number in urls - test length more than 1", async () => {
-      urlQueue.addToQueue(anotherUrl);
+      urlQueue.addItemsToQueue([anotherUrl]);
       expect(urlQueue.count()).to.equal(2);
     });
 

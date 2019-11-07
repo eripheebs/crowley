@@ -1,15 +1,19 @@
 import { expect } from "chai";
 import sinon from "sinon";
 import { createResourcePool, ResourcePool } from "../resourcePool";
-import { createConfig } from "../../config/config";
+import { createUrlQueue, UrlQueue } from "../queue";
+import { Context } from "../index";
+import { getSecondsTaken } from "./helpers/getSecondsTaken";
 import { generateContext } from "./context.fixtures";
-import { createUrlQueue } from "../queue";
+import { createConfig } from "../../config";
 
-const getContextWithMaxConnections = (maxConnections: number) => {
+export const getContextWithMaxConnections = (
+  maxConnections: number
+): Context => {
   const config = createConfig({
-    resourcePool: {
-      maxConnections
-    }
+    maxTimeoutMs: 2000,
+    pollIntervalMs: 10,
+    maxConnections
   });
   return generateContext({
     config
@@ -21,7 +25,8 @@ describe("Task Pool", () => {
     sandbox: sinon.SinonSandbox,
     taskWorkerStub: sinon.SinonStub,
     countStub: sinon.SinonStub,
-    getNextStub: sinon.SinonStub;
+    context: Context,
+    queue: UrlQueue;
 
   const taskWorker = {
     work: async (_: any) => {}
@@ -38,26 +43,30 @@ describe("Task Pool", () => {
 
   describe("startTasks", () => {
     beforeEach(() => {
-      const context = getContextWithMaxConnections(1);
-      const queue = createUrlQueue(context);
+      context = getContextWithMaxConnections(1);
+      queue = createUrlQueue(context);
       resourcePool = createResourcePool(context, queue, taskWorker);
 
       countStub = sandbox.stub(queue, "count");
-      getNextStub = sandbox.stub(queue, "getNext");
     });
 
     it("starts task workers with the next resource until the count is 0 and all workers are free", async () => {
-      const getNextReturns = "!!! can be anything";
       countStub.returns(0);
       countStub.onCall(0).returns(1);
       countStub.onCall(1).returns(1);
 
-      getNextStub.returns(getNextReturns);
-
       await resourcePool.startTasks();
-      expect(getNextStub.calledOnce).to.be.true;
       expect(taskWorkerStub.calledOnce).to.be.true;
-      expect(taskWorkerStub.calledWith(getNextReturns)).to.be.true;
+      expect(taskWorkerStub.calledWith(queue)).to.be.true;
+    });
+
+    it("task worker throwing error still releases the resource", async () => {
+      countStub.returns(0);
+      countStub.onCall(0).returns(1);
+      countStub.onCall(1).returns(1);
+      taskWorkerStub.throws();
+      await resourcePool.startTasks();
+      expect(countStub.calledThrice);
     });
   });
 
@@ -68,8 +77,6 @@ describe("Task Pool", () => {
       resourcePool = createResourcePool(context, queue, taskWorker);
 
       countStub = sandbox.stub(queue, "count");
-      getNextStub = sandbox.stub(queue, "getNext");
-      getNextStub.returns("doesnt matter");
     });
 
     it("only uses up to the max number of connections, then waits to acquire a connection and then starts connecting again when a connection comes free", async () => {
@@ -90,8 +97,69 @@ describe("Task Pool", () => {
       // This means we should have a total of 4 queue.GetNext and 4 taskWorker.work() calls
 
       await resourcePool.startTasks();
-      expect(getNextStub.getCalls().length).to.equal(4);
       expect(taskWorkerStub.getCalls().length).to.equal(4);
+    });
+
+    it("a larger number of max connections will take less time", async () => {
+      const contextWithManyConnections = getContextWithMaxConnections(10);
+      const queue = createUrlQueue(context);
+      const countStubMax = sandbox.stub(queue, "count");
+      countStubMax.returns(0);
+      countStubMax.onCall(0).returns(1);
+      countStubMax.onCall(1).returns(1);
+      countStubMax.onCall(2).returns(1);
+      countStubMax.onCall(3).returns(1);
+      countStubMax.onCall(4).returns(1);
+      countStubMax.onCall(5).returns(1);
+
+      const resourcePoolManyC = createResourcePool(
+        contextWithManyConnections,
+        queue,
+        taskWorker
+      );
+
+      const contextWithLessConnections = getContextWithMaxConnections(1);
+      const queue2 = createUrlQueue(context);
+      const countStubLess = sandbox.stub(queue2, "count");
+      countStubLess.returns(0);
+      countStubLess.onCall(0).returns(1);
+      countStubLess.onCall(1).returns(1);
+      countStubLess.onCall(2).returns(1);
+      countStubLess.onCall(3).returns(1);
+      countStubLess.onCall(4).returns(1);
+      countStubLess.onCall(5).returns(1);
+
+      const resourcePoolLessC = createResourcePool(
+        contextWithLessConnections,
+        queue2,
+        taskWorker
+      );
+      const [
+        secondsTakenManyConnections,
+        secondsTakenFewConnections
+      ] = await Promise.all([
+        getSecondsTaken(resourcePoolManyC.startTasks),
+        getSecondsTaken(resourcePoolLessC.startTasks)
+      ]);
+
+      expect(secondsTakenManyConnections < secondsTakenFewConnections).to.be
+        .true;
+    }).timeout(10000);
+  });
+
+  describe("closePool", () => {
+    it("should drain and clear the resoure pool", async () => {
+      context = getContextWithMaxConnections(1);
+      queue = createUrlQueue(context);
+      resourcePool = createResourcePool(context, queue, taskWorker);
+
+      await resourcePool.closePool();
+      try {
+        await resourcePool.testing.pool.acquire();
+        expect.fail();
+      } catch (err) {
+        expect(err.message).to.equal("pool is draining and cannot accept work");
+      }
     });
   });
 });

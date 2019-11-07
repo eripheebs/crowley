@@ -1,8 +1,9 @@
 import { URL } from "url";
-import { Context } from "./crawler";
+import { Context } from "./index";
 import { ResourceQueue } from "./types";
+import { EmptyQueueError } from "./errors";
 
-type URLQueueContext = Pick<Context, "config">;
+type URLQueueContext = Pick<Context, "config" | "clients">;
 
 /**
  * The queue keeps the URLs that have yet to be visited.
@@ -17,26 +18,24 @@ export class UrlQueue implements ResourceQueue {
     urls: URL[];
   };
 
-  constructor(ctx: URLQueueContext) {
+  constructor(private ctx: URLQueueContext) {
     const initialUrl = ctx.config.crawler.initialUrl;
     this.urls = [initialUrl];
-    this.visited = {};
+    this.visited = {
+      [initialUrl.toString()]: true
+    };
     this.testing = {
       urls: this.urls
     };
   }
 
-  addToQueue(url: URL) {
-    if (this.isSeen(url)) {
-      return;
-    }
-    this.urls.push(url);
-    this.addToVisited(url);
+  addItemsToQueue(urls: URL[]) {
+    urls.forEach(this.addToQueue);
   }
 
   getNext(): URL {
     if (this.urls.length === 0) {
-      throw Error("no more in queue!"); // make typed err later
+      throw EmptyQueueError();
     }
     return this.urls.shift() as URL; // this should be able to infer - fix later
   }
@@ -44,6 +43,16 @@ export class UrlQueue implements ResourceQueue {
   count(): number {
     return this.urls.length;
   }
+
+  private addToQueue = (url: URL) => {
+    if (this.isSeen(url)) {
+      this.ctx.clients.logger.info(`${url.toString()} already seen`);
+      return;
+    }
+    this.urls.push(url);
+    this.addToVisited(url);
+    this.ctx.clients.logger.info(`${url.toString()} added to queue`);
+  };
 
   private addToVisited(url: URL) {
     this.visited[url.toString()] = true;

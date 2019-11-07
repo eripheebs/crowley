@@ -1,10 +1,11 @@
 import genericPool from "generic-pool";
 import uuid from "uuid";
+import delay from "delay";
 
-import { Context } from "./crawler";
+import { Context } from "./index";
 import { ResourceQueue, TaskWorker } from "./types";
 
-type ResourcePoolContext = Pick<Context, "config">;
+type ResourcePoolContext = Pick<Context, "config" | "clients">;
 
 interface IdentifiableResource {
   id: string;
@@ -30,37 +31,46 @@ const generateIdentifiableResource = (
 export class ResourcePool {
   private pool: genericPool.Pool<IdentifiableResource>;
   private maxConnections: number;
-  private hasOutstandingTasks: boolean;
+  private oustandingTasks: number;
+  testing: {
+    // exporting just for testing
+    pool: genericPool.Pool<any>;
+  };
 
   constructor(
-    ctx: ResourcePoolContext,
+    private ctx: ResourcePoolContext,
     private queue: ResourceQueue,
     private taskWorker: TaskWorker
   ) {
-    this.hasOutstandingTasks = false;
+    this.oustandingTasks = 0;
     this.maxConnections = ctx.config.resourcePool.maxConnections;
     const factory = {
-      // generic-pool expects a factory with this function signature (https://github.com/coopernurse/node-pool)
+      // generic-pool expects a factory in it's createPool function signature (https://github.com/coopernurse/node-pool)
       create: async () => generateIdentifiableResource(this.queue),
       destroy: async () => {
-        console.log("pool connection destroyed");
+        this.ctx.clients.logger.info("pool connection destroyed");
       }
     };
     const opts: genericPool.Options = {
       max: this.maxConnections
     };
     this.pool = genericPool.createPool(factory, opts);
+
+    this.testing = {
+      pool: this.pool
+    };
   }
 
   /**
-   * Start begins the task pool tasks.
+   * Start tasks begins allocating resources to workers to perform tasks on.
    * It will continuously loop until the pool is finished.
    * When pool is finished it will close the pool.
    */
-  async startTasks() {
+  startTasks = async () => {
     while (!this.isPoolFinished()) {
       if (this.shouldAddNewWorker()) {
         this.addWorker();
+        this.ctx.clients.logger.info("worker added");
         continue;
       }
       await this.waitUntilResourceAvailable(); // stops from endlessly looping when no resources are available
@@ -68,13 +78,19 @@ export class ResourcePool {
     await this.closePool();
   }
 
+  closePool = async () => {
+    await this.pool.drain();
+    await this.pool.clear();
+    this.ctx.clients.logger.info("pool drained");
+  };
+
   /**
    * checks if pool is finished! This means that there is nothing left in the queue
    * and all workers have completed their tasks :D
    */
   private isPoolFinished() {
     const nothingInQueue = this.queue.count() === 0;
-    return nothingInQueue && !this.hasOutstandingTasks;
+    return nothingInQueue && !this.oustandingTasks;
   }
 
   /**
@@ -83,17 +99,21 @@ export class ResourcePool {
    * locks the pool from finishing while a worker is executing.
    */
   private async addWorker() {
-    this.lockPoolFromFinishing();
+    this.addOutstandingTaskCount();
 
     const resource = await this.pool.acquire();
-    const nextInQueue = resource.queue.getNext();
-    await this.taskWorker.work(nextInQueue);
+    try {
+      await this.taskWorker.work(resource.queue);
+    } catch (err) {
+      this.ctx.clients.logger.error("task worker failed");
+    }
     await this.releaseResource(resource); // decide how to handle errs in releasing connection
-    this.unlockPoolFromFinishing();
+    this.subtractOutstandingTaskCount();
   }
 
-  /** when there are no connections availalbe, this func waits to aquire one then immedietly releases it */
+  /** when there are no connections availalbe, this func waits for a delay, then waits to aquire a connection then immedietly releases it */
   private async waitUntilResourceAvailable() {
+    await delay(this.ctx.config.crawler.pollIntervalMs);
     const resource = await this.pool.acquire();
     await this.releaseResource(resource);
   }
@@ -102,17 +122,12 @@ export class ResourcePool {
     await this.pool.release(resource);
   }
 
-  private async closePool() {
-    await this.pool.drain();
-    await this.pool.clear();
+  private addOutstandingTaskCount() {
+    this.oustandingTasks += 1;
   }
 
-  private lockPoolFromFinishing() {
-    this.hasOutstandingTasks = true;
-  }
-
-  private unlockPoolFromFinishing() {
-    this.hasOutstandingTasks = false;
+  private subtractOutstandingTaskCount() {
+    this.oustandingTasks -= 1;
   }
 
   /**

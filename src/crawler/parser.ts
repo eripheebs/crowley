@@ -1,4 +1,15 @@
 import cheerio from "cheerio";
+import { URL } from "url";
+
+export const relativeLinkToUrl = ({
+  relativePath,
+  baseUrl
+}: {
+  relativePath: string;
+  baseUrl: string;
+}): URL => {
+  return new URL(`${baseUrl}${relativePath}`);
+};
 
 /**
  * parseHtmlAndCollectRelativeLinks

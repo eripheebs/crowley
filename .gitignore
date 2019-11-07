@@ -11,3 +11,9 @@ yarn-error.log
 
 # linting
 .eslintcache
+
+# js code
+dist
+
+# environmental vars
+.env

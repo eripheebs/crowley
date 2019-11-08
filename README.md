@@ -8,7 +8,7 @@ The crawler has a queue and a resource pool. When a new URL is found it is added
 
 In the resource pool, as long as there are unfinished tasks and URLs in the queue, there is a loop checking whether we should add a new worker. This loop gets throttled when all workers are busy by an attempt to acquire a connection. It waits (blocking the loop) until one of the connections are freed. Whenever a connection is released (so there are less than MAX_CONNECTIONS free) if there are still URLs in the queue, the worker will acquire that connection and continue to crawl on the next url :)
 
-When a worker has a connection to a queue, it will write the next available URL to the OUTPUT_FILE_PATH. There is a lock on the file so only one worker can write to it at a time. It will make a request to that resource and try to find other URLs in the body of the response and add URLs we have not visited before to the queue.
+When a worker has a connection to a queue, it will write the next available URL to the OUTPUT_FILE_PATH. There is a lock on the file so only one worker can write to it at a time. It will make a reques to the URL and try to find other URLs in the body of the response and add URLs we have not visited before to the queue.
 
 When the queue is empty and no outstanding tasks are remaining, the pool is drained.
 

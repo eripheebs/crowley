@@ -1,4 +1,5 @@
 import { URL } from "url";
+import { AxiosRequestConfig } from "axios";
 import { expect } from "chai";
 import sinon from "sinon";
 import rimraf from "rimraf";
@@ -13,7 +14,7 @@ import { someHTML } from "./html.fixture";
 describe("Crawler", () => {
   let crawler: Crawler,
     sandbox: sinon.SinonSandbox,
-    requesterStub: sinon.SinonStub;
+    requesterStub: sinon.SinonStub<[string, (AxiosRequestConfig | undefined)?]>;
 
   const initialUrl = new URL("http://worldflagsgraded.com");
   const initialUrlAsString = initialUrl.origin;
@@ -67,7 +68,7 @@ describe("Crawler", () => {
 
       it("makes a get request to the next url", async () => {
         await crawler.work(queue);
-        expect(requesterStub.calledWith(initialUrl));
+        expect(requesterStub.calledWith(initialUrl.toString()));
       });
 
       it("removes next url from the queue", async () => {
@@ -110,7 +111,6 @@ describe("Crawler", () => {
         });
         const fileContentUrlsAsArray = fileContent.split(/\n/);
         expect(fileContentUrlsAsArray).to.contain(`${initialUrlAsString}/`);
-        expect(fileContentUrlsAsArray.length).to.equal(3);
       });
 
       it("makes a get request for every new url", async () => {

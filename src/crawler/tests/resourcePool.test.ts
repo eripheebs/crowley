@@ -23,8 +23,8 @@ export const getContextWithMaxConnections = (
 describe("Task Pool", () => {
   let resourcePool: ResourcePool,
     sandbox: sinon.SinonSandbox,
-    taskWorkerStub: sinon.SinonStub,
-    countStub: sinon.SinonStub,
+    taskWorkerStub: sinon.SinonStub<[any], Promise<void>>,
+    countStub: sinon.SinonStub<[], number>,
     context: Context,
     queue: UrlQueue;
 

@@ -13,6 +13,7 @@ When the queue is empty and no outstanding tasks are remaining, the pool is drai
 ### Set up:
 
 - install dependencies `yarn` or `npm install`
+- compatibility: Use node v 10.15+
 
 #### Via command line:
 

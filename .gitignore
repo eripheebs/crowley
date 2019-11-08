@@ -17,3 +17,6 @@ dist
 
 # environmental vars
 .env
+
+# no need to share lock file
+.yarn.lock
